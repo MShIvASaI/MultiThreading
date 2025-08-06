@@ -78,6 +78,20 @@ int main() {
 - All write operations (`get`, `put`, `remove`) are protected by a `std::shared_mutex` for thread safety.
 - The cache automatically evicts the least recently used item when the capacity is exceeded.
 
+In C++ multithreading, especially with `std::shared_mutex` (or `std::shared_timed_mutex`), you have two main lock types:
+
+### 1. `std::shared_lock`
+- **Purpose:** Allows multiple threads to acquire the lock for reading (shared access) simultaneously.
+- **When to use:** Use `shared_lock` when you only need to **read** data and not modify it. Multiple threads can hold a `shared_lock` at the same time.
+
+### 2. `std::unique_lock`
+- **Purpose:** Allows only one thread to acquire the lock for writing (exclusive access).
+- **When to use:** Use `unique_lock` when you need to **modify** (write/update) the shared data. Only one thread can hold a `unique_lock` at a time, and no thread can hold a `shared_lock` while a `unique_lock` is held.
+
+
+**In this LRUCache.h, `put` uses `unique_lock` because it writes to the cache, and you want to ensure only one thread can modify the data at a time to avoid issues.**  
+Use `shared_lock` for read-only operations, and `unique_lock` for write operations.
+
 ## Requirements
 
 - C++17 or higher
