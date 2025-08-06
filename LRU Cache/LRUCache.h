@@ -18,8 +18,8 @@ public:
     bool get(const Key& key, Value& value) {
         std::unique_lock lock(mutex_);
 
-        auto it = map_.find(key);
-        if (it == map_.end()) {
+        auto it = cacheMap.find(key);
+        if (it == cacheMap.end()) {
             return false; // Key not found
         }
         // Move the accessed node to the front (most recently used)
@@ -32,8 +32,8 @@ public:
     void put(const Key& key, const Value& value) {
         std::unique_lock lock(mutex_);
 
-        auto it = map_.find(key);
-        if (it != map_.end()) {
+        auto it = cacheMap.find(key);
+        if (it != cacheMap.end()) {
             // Key exists, update value and move to front
             it->second->second = value;
             cache_items_.splice(cache_items_.begin(), cache_items_, it->second);
@@ -42,13 +42,13 @@ public:
 
         // Insert new item at the front
         cache_items_.emplace_front(key, value);
-        map_[key] = cache_items_.begin();
+        cacheMap[key] = cache_items_.begin();
 
         // If over capacity, remove the least recently used (from back)
-        if (map_.size() > capacity_) {
+        if (cacheMap.size() > capacity_) {
             auto lru = cache_items_.end();
             --lru;
-            map_.erase(lru->first);
+            cacheMap.erase(lru->first);
             cache_items_.pop_back();
         }
     }
@@ -56,17 +56,17 @@ public:
     // Remove a key from the cache.
     void remove(const Key& key) {
         std::unique_lock lock(mutex_);
-        auto it = map_.find(key);
-        if (it != map_.end()) {
+        auto it = cacheMap.find(key);
+        if (it != cacheMap.end()) {
             cache_items_.erase(it->second);
-            map_.erase(it);
+            cacheMap.erase(it);
         }
     }
 
     // Get current size of the cache.
     size_t size() const {
         std::shared_lock lock(mutex_);
-        return map_.size();
+        return cacheMap.size();
     }
 
 private:
@@ -78,5 +78,5 @@ private:
     std::list<std::pair<Key, Value>> cache_items_;
 
     // Map from key to list iterator, allows O(1) access and removal.
-    std::unordered_map<Key, typename std::list<std::pair<Key, Value>>::iterator> map_;
+    std::unordered_map<Key, typename std::list<std::pair<Key, Value>>::iterator> cacheMap;
 };
