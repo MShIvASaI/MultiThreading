@@ -92,6 +92,34 @@ In C++ multithreading, especially with `std::shared_mutex` (or `std::shared_time
 **In this LRUCache.h, `put` uses `unique_lock` because it writes to the cache, and you want to ensure only one thread can modify the data at a time to avoid issues.**  
 Use `shared_lock` for read-only operations, and `unique_lock` for write operations.
 
+## Why `shared_mutex` is declared as `mutable` ?
+Declaring a `shared_mutex` as `mutable` is important when you want to use it for thread synchronization inside a class that provides const member functions.
+
+**Explanation:**
+
+- In C++, a `const` member function promises not to modify the logical state of the object.
+- However, you may still want to allow multiple threads to read from the object at the same time, using a `shared_mutex`.
+- Acquiring a lock (even for reading) requires modifying the internal state of the mutex (e.g., locking counters).
+- If your `shared_mutex` is not declared as `mutable`, you cannot lock or unlock it in a `const` member function, because that would violate the `const` promise.
+- Declaring the `shared_mutex` as `mutable` allows you to lock/unlock the mutex even in `const` member functions, because `mutable` permits modification of that member even in `const` contexts.
+
+**Example:**
+```cpp
+class Example {
+    mutable std::shared_mutex mutex;
+    int data;
+public:
+    int get() const {
+        std::shared_lock lock(mutex); // OK, because mutex is mutable
+        return data;
+    }
+};
+```
+Without `mutable`, the above would not compile, because `mutex` would be considered immutable in `const` functions.
+
+**Summary:**  
+Declare `shared_mutex` as `mutable` if you need to lock it in `const` member functions, enabling thread-safe reads without breaking the `const` promise of your API.
+
 ## Requirements
 
 - C++17 or higher
