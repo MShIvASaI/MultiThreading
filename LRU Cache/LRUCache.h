@@ -23,7 +23,7 @@ public:
             return false; // Key not found
         }
         // Move the accessed node to the front (most recently used)
-        cache_items_.splice(cache_items_.begin(), cache_items_, it->second);
+        cacheList.splice(cacheList.begin(), cacheList, it->second);
         value = it->second->second;
         return true;
     }
@@ -36,20 +36,20 @@ public:
         if (it != cacheMap.end()) {
             // Key exists, update value and move to front
             it->second->second = value;
-            cache_items_.splice(cache_items_.begin(), cache_items_, it->second);
+            cacheList.splice(cacheList.begin(), cacheList, it->second);
             return;
         }
 
         // Insert new item at the front
-        cache_items_.emplace_front(key, value);
-        cacheMap[key] = cache_items_.begin();
+        cacheList.emplace_front(key, value);
+        cacheMap[key] = cacheList.begin();
 
         // If over capacity, remove the least recently used (from back)
         if (cacheMap.size() > capacity_) {
-            auto lru = cache_items_.end();
+            auto lru = cacheList.end();
             --lru;
             cacheMap.erase(lru->first);
-            cache_items_.pop_back();
+            cacheList.pop_back();
         }
     }
 
@@ -58,7 +58,7 @@ public:
         std::unique_lock lock(mutex_);
         auto it = cacheMap.find(key);
         if (it != cacheMap.end()) {
-            cache_items_.erase(it->second);
+            cacheList.erase(it->second);
             cacheMap.erase(it);
         }
     }
@@ -75,7 +75,7 @@ private:
 
     // Doubly linked list to store cache keys and values.
     // Front of the list is most recently used.
-    std::list<std::pair<Key, Value>> cache_items_;
+    std::list<std::pair<Key, Value>> cacheList;
 
     // Map from key to list iterator, allows O(1) access and removal.
     std::unordered_map<Key, typename std::list<std::pair<Key, Value>>::iterator> cacheMap;
